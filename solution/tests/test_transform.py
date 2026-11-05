@@ -66,3 +66,52 @@ def test_unknown_fares_are_not_counted_as_zero_revenue(tmp_path: Path) -> None:
     assert daily.iloc[0]["trip_count"] == 2
     assert metadata["rows_read"] == 3
     assert metadata["revenue_total"] == 12.0
+
+
+def test_trips_outside_requested_months_are_dropped(tmp_path: Path) -> None:
+    """Monthly files contain a few stray trips from neighbouring months."""
+    source = tmp_path / "green_tripdata_2025-01.parquet"
+    pd.DataFrame(
+        {
+            "lpep_pickup_datetime": [
+                "2024-12-31 23:00:00",
+                "2025-01-01 00:00:00",
+                "2025-01-31 23:59:59",
+                "2025-02-01 00:00:00",
+            ],
+            "total_amount": [99.0, 10.0, 20.0, 99.0],
+        }
+    ).to_parquet(source, index=False)
+
+    daily, metadata = calculate_daily_revenue([source], months=["2025-01"])
+
+    assert daily["service_date"].tolist() == ["2025-01-01", "2025-01-31"]
+    assert metadata["months"] == ["2025-01"]
+    assert metadata["rows_read"] == 4
+    assert metadata["rows_outside_months"] == 2
+    assert metadata["source_files"][0]["rows_outside_months"] == 2
+    assert metadata["source_files"][0]["rows_used"] == 2
+    assert metadata["revenue_total"] == 30.0
+
+
+def test_month_filter_respects_gaps_between_months(tmp_path: Path) -> None:
+    """Asking for January and March must not pull in February trips."""
+    source = tmp_path / "trips.parquet"
+    pd.DataFrame(
+        {
+            "lpep_pickup_datetime": [
+                "2025-01-15 08:00:00",
+                "2025-02-15 08:00:00",
+                "2025-03-15 08:00:00",
+            ],
+            "total_amount": [1.0, 2.0, 3.0],
+        }
+    ).to_parquet(source, index=False)
+
+    daily, metadata = calculate_daily_revenue(
+        [source], months=["2025-03", "2025-01"]
+    )
+
+    assert daily["service_date"].tolist() == ["2025-01-15", "2025-03-15"]
+    assert metadata["rows_outside_months"] == 1
+    assert metadata["revenue_total"] == 4.0

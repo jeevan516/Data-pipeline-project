@@ -1,7 +1,15 @@
 """Optional Prefect orchestration wrapper around the local data pipeline."""
 
 import importlib
+import sys
 from pathlib import Path
+
+# Running this file directly (e.g. VS Code's Run button) gives Python no package
+# context, so the relative imports below would fail. Point Python at src/ and
+# say which package this file belongs to.
+if __name__ == "__main__" and not __package__:
+    sys.path[0] = str(Path(__file__).resolve().parents[1])
+    __package__ = "data_pipeline"
 
 from .config import (
     DEFAULT_BASE_URL,
@@ -24,7 +32,7 @@ def transform_step(
 ) -> dict[str, object]:
     """Prefect task body for transforming local Parquet files into outputs."""
     input_paths = [raw_dir / build_dataset_filename(month) for month in months]
-    _, metadata = run_pipeline(input_paths, output_dir)
+    _, metadata = run_pipeline(input_paths, output_dir, months)
     return metadata
 
 
@@ -86,4 +94,14 @@ def green_taxi_local_pipeline(
                 "'uv run prefect config unset PREFECT_API_URL --yes' and unset the "
                 "PREFECT_API_URL environment variable before rerunning this script."
             ) from error
+        raise
+
+
+if __name__ == "__main__":
+    # Same as `scripts/run_prefect_flow.py`.
+    try:
+        green_taxi_local_pipeline()
+    except RuntimeError as error:
+        if "Prefect could not reach the configured API" in str(error):
+            raise SystemExit(str(error)) from None
         raise
