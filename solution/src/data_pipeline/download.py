@@ -1,10 +1,18 @@
 """Download helpers for the raw NYC Green Taxi Parquet files."""
 
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 import requests
+
+# Running this file directly (e.g. VS Code's Run button) gives Python no package
+# context, so the relative imports below would fail. Point Python at src/ and
+# say which package this file belongs to.
+if __name__ == "__main__" and not __package__:
+    sys.path[0] = str(Path(__file__).resolve().parents[1])
+    __package__ = "data_pipeline"
 
 from .config import (
     DEFAULT_DOWNLOAD_TIMEOUT_SECONDS,
@@ -63,3 +71,10 @@ def download_months(
         download_month(month, raw_dir, base_url=base_url, force=force)
         for month in months
     ]
+
+
+if __name__ == "__main__":
+    # Same as `scripts/download_data.py`.
+    from .cli import main
+
+    raise SystemExit(main(["download", *sys.argv[1:]]))

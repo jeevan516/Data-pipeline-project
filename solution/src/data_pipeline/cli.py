@@ -1,8 +1,16 @@
 """Command-line interface for running the reference pipeline from scripts."""
 
+import sys
 from pathlib import Path
 
 import click
+
+# Running this file directly (e.g. VS Code's Run button) gives Python no package
+# context, so the relative imports below would fail. Point Python at src/ and
+# say which package this file belongs to.
+if __name__ == "__main__" and not __package__:
+    sys.path[0] = str(Path(__file__).resolve().parents[1])
+    __package__ = "data_pipeline"
 
 from .config import (
     DEFAULT_BASE_URL,
@@ -48,13 +56,15 @@ def handle_download(
 def handle_run(raw_dir: Path, output_dir: Path, months: list[str]) -> int:
     """Run the transformation step and print the generated output paths."""
     input_paths = collect_input_paths(raw_dir, months)
-    outputs, metadata = run_pipeline(input_paths, output_dir)
+    outputs, metadata = run_pipeline(input_paths, output_dir, months)
     click.echo(f"wrote: {outputs.daily_revenue_csv}")
     click.echo(f"wrote: {outputs.daily_revenue_parquet}")
     click.echo(f"wrote: {outputs.metadata_json}")
     click.echo(
         "summary:"
-        f" days={metadata['days_in_output']}"
+        f" months={','.join(sorted(set(months)))}"
+        f", dropped_outside_months={metadata['rows_outside_months']}"
+        f", days={metadata['days_in_output']}"
         f", trips={metadata['trips_in_output']}"
         f", revenue_total={metadata['revenue_total']}"
     )
