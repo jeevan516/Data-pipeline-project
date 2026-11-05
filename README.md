@@ -42,6 +42,22 @@ uv run python -m green_taxi.flow
 
 If Prefect complains about a server or `PREFECT_API_URL` from another project, run the cleanup steps in [solution/README.md](solution/README.md#optional-prefect-flow) first.
 
+#### See the runs in the Prefect dashboard
+
+The temporary server stops when the run ends. To browse runs afterwards, keep a server running in one terminal:
+
+```bash
+uv run prefect server start
+```
+
+Then run the flow against it from a second terminal:
+
+```bash
+PREFECT_API_URL=http://127.0.0.1:4200/api uv run python -m green_taxi.flow
+```
+
+Open <http://127.0.0.1:4200/runs>. Each run of `green-taxi-daily-revenue` shows its tasks (three downloads, transform, load), their states and the logs, including the total revenue. Stop the server with `Ctrl+C`.
+
 ### Outputs
 
 Everything is written to `data/processed/`:
@@ -67,6 +83,8 @@ src/green_taxi/
   pipeline.py          # entry point: runs the three stages in order (`green-taxi`)
   flow.py              # Prefect flow: the same stages as tasks, with retries
 tests/                 # transform rules and download re-run behaviour
+presentation/
+  green-taxi-daily-revenue.pptx   # results deck (11 slides, speaker notes included)
 solution/              # the course's reference solution (unchanged)
 ```
 
