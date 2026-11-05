@@ -169,3 +169,12 @@ solution/data/raw/*
 solution/data/processed/*
 !solution/data/raw/.gitkeep
 !solution/data/processed/.gitkeep
+
+# Pipeline data files (downloaded and generated, never committed)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# macOS
+.DS_Store
